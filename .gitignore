@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Environment variables
+.env
+*.env.local
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (do not commit uploaded documents)
+server/uploads/
+
+# Python cache
+.pytest_cache/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
