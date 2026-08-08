@@ -28,7 +28,8 @@ npm-debug.log*
 Thumbs.db
 
 # Uploads (do not commit uploaded documents)
-server/uploads/
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Python cache
 .pytest_cache/
