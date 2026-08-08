@@ -17,50 +17,97 @@ const loginSchema = z.object({
 const signToken = (id: string): string =>
   jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const parsed = registerSchema.safeParse(req.body);
+
   if (!parsed.success) {
-    res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+    res.status(400).json({
+      message: 'Invalid input',
+      errors: parsed.error.issues,
+    });
     return;
   }
 
   const { name, email, password } = parsed.data;
+
   const existing = await User.findOne({ email });
+
   if (existing) {
     res.status(409).json({ message: 'Email already in use' });
     return;
   }
 
-  const user = await User.create({ name, email, password });
+  const user = await User.create({
+    name,
+    email,
+    password,
+  });
+
   const token = signToken(user.id as string);
 
-  res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
+  res.status(201).json({
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+  });
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const parsed = loginSchema.safeParse(req.body);
+
   if (!parsed.success) {
-    res.status(400).json({ message: 'Invalid input' });
+    res.status(400).json({
+      message: 'Invalid input',
+    });
     return;
   }
 
   const { email, password } = parsed.data;
+
   const user = await User.findOne({ email });
+
   if (!user || !(await user.comparePassword(password))) {
-    res.status(401).json({ message: 'Invalid credentials' });
+    res.status(401).json({
+      message: 'Invalid credentials',
+    });
     return;
   }
 
   const token = signToken(user.id as string);
-  res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+  });
 };
 
-export const getMe = async (req: Request, res: Response): Promise<void> => {
+export const getMe = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   // req.userId set by auth middleware
-  const user = await User.findById((req as any).userId).select('-password');
+  const user = await User.findById((req as any).userId)
+    .select('-password');
+
   if (!user) {
-    res.status(404).json({ message: 'User not found' });
+    res.status(404).json({
+      message: 'User not found',
+    });
     return;
   }
+
   res.json({ user });
 };
