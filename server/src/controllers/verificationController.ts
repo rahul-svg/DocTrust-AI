@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { DocumentModel } from '../models/Document';
 import { VerificationModel } from '../models/Verification';
-import { runOcr } from '../services/aiService';
+import { runFullVerification } from '../services/aiService';
 
 export const verifyDocument = async (req: Request, res: Response): Promise<void> => {
   const userId = (req as any).userId;
@@ -20,17 +20,22 @@ export const verifyDocument = async (req: Request, res: Response): Promise<void>
   await doc.save();
 
   try {
-    const ocrText = await runOcr(doc.path, doc.mimeType);
+    const result = await runFullVerification(doc.path, doc.mimeType);
 
-    doc.status = 'verified';
+    doc.status = result.status === 'failed' ? 'failed' : 'verified';
     await doc.save();
 
     const verification = await VerificationModel.create({
       documentId: doc._id,
       userId,
-      ocrText,
-      charCount: ocrText.length,
-      status: 'completed',
+      ocrText: result.ocrText,
+      charCount: result.ocrText.length,
+      documentType: result.documentType,
+      confidence: result.confidence,
+      extractedData: result.extractedData,
+      aiAnalysis: result.aiAnalysis,
+      issues: result.issues,
+      status: result.status,
     });
 
     res.json({ verification });
@@ -43,11 +48,16 @@ export const verifyDocument = async (req: Request, res: Response): Promise<void>
       userId,
       ocrText: '',
       charCount: 0,
+      documentType: 'unknown',
+      confidence: 0,
+      extractedData: {},
+      aiAnalysis: { documentQuality: 'Poor', tamperingDetected: false, dataConsistency: false },
+      issues: ['AI service unavailable or processing failed'],
       status: 'failed',
     });
 
     console.error('Verification error:', err);
-    res.status(502).json({ message: 'AI service unavailable or OCR failed' });
+    res.status(502).json({ message: 'AI service unavailable or processing failed' });
   }
 };
 
