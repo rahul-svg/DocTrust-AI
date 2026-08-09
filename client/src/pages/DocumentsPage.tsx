@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { documentService } from '../services/documentService';
+import { verificationService } from '../services/verificationService';
 import type { Document } from '../types/document';
+import type { Verification } from '../types/verification';
 import { useAuth } from '../hooks/useAuth';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -11,12 +13,56 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'bg-red-100 text-red-700',
 };
 
+function OcrModal({
+  verification,
+  onClose,
+}: {
+  verification: Verification;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h3 className="font-semibold text-gray-800">OCR Result</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">
+            ×
+          </button>
+        </div>
+        <div className="px-6 py-3 flex items-center gap-3 border-b text-sm text-gray-500">
+          <span
+            className={`font-medium px-2 py-0.5 rounded-full capitalize text-xs ${
+              verification.status === 'completed'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {verification.status}
+          </span>
+          <span>{verification.charCount.toLocaleString()} characters extracted</span>
+        </div>
+        <pre className="flex-1 overflow-auto px-6 py-4 text-sm text-gray-700 whitespace-pre-wrap font-mono">
+          {verification.ocrText || 'No text could be extracted.'}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 export default function DocumentsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [ocrResult, setOcrResult] = useState<Verification | null>(null);
 
   const fetchDocs = async () => {
     try {
@@ -40,8 +86,33 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleRunOcr = async (id: string) => {
+    setProcessingId(id);
+    setDocuments((prev) =>
+      prev.map((d) => (d._id === id ? { ...d, status: 'processing' } : d))
+    );
+    try {
+      const res = await verificationService.verify(id);
+      const verification = res.data.verification;
+      setOcrResult(verification);
+      setDocuments((prev) =>
+        prev.map((d) => (d._id === id ? { ...d, status: 'verified' } : d))
+      );
+    } catch {
+      setDocuments((prev) =>
+        prev.map((d) => (d._id === id ? { ...d, status: 'failed' } : d))
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
+      {ocrResult && (
+        <OcrModal verification={ocrResult} onClose={() => setOcrResult(null)} />
+      )}
+
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800">DocTrust AI</h1>
@@ -100,6 +171,15 @@ export default function DocumentsPage() {
                   >
                     {doc.status}
                   </span>
+                  <button
+                    onClick={() => handleRunOcr(doc._id)}
+                    disabled={
+                      processingId === doc._id || doc.status === 'processing'
+                    }
+                    className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-2.5 py-1 rounded-lg transition disabled:opacity-40"
+                  >
+                    {processingId === doc._id ? 'Running…' : 'Run OCR'}
+                  </button>
                   <button
                     onClick={() => handleDelete(doc._id)}
                     disabled={deletingId === doc._id}

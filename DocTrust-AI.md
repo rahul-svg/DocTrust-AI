@@ -1,6 +1,6 @@
 # DocTrust AI
 
-AI-powered document verification system built with a **MERN stack** and a separate **Python AI service**.
+AI-powered document verification system built entirely on **Node.js + TypeScript** — a React frontend, a Node.js main backend, and a separate Node.js AI service.
 
 ## 1. Project Overview
 
@@ -41,11 +41,14 @@ DocTrust AI allows users to upload documents and receive an AI-assisted verifica
 
 ### AI Service
 
-* Python
-* FastAPI
-* OCR
-* Python ML/AI libraries
-* LLM integration
+* Node.js
+* Express.js (or Fastify)
+* TypeScript
+* Tesseract.js (OCR)
+* pdf-parse / pdfjs-dist (PDF text extraction)
+* onnxruntime-node (running trained ML models)
+* LangChain.js (LLM orchestration)
+* OpenAI / Anthropic SDK (LLM integration)
 * Document analysis
 * Verification engine
 
@@ -68,9 +71,9 @@ DocTrust AI allows users to upload documents and receive an AI-assisted verifica
                   │                         │
                   ▼                         ▼
           ┌──────────────┐          ┌──────────────┐
-          │   MongoDB    │          │ Python AI    │
+          │   MongoDB    │          │ Node.js AI   │
           │              │          │   Service    │
-          └──────────────┘          │   FastAPI    │
+          └──────────────┘          │   Express    │
                                     └──────┬───────┘
                                            │
                                 ┌──────────┼──────────┐
@@ -95,7 +98,7 @@ doctrust-ai/
 │   │   └── App.tsx
 │   └── package.json
 │
-├── server/                         # Node.js + Express backend
+├── server/                         # Node.js + Express main backend
 │   ├── src/
 │   │   ├── controllers/
 │   │   ├── routes/
@@ -107,20 +110,20 @@ doctrust-ai/
 │   │   └── app.ts
 │   └── package.json
 │
-├── ai-service/                     # Python AI service
-│   ├── app/
-│   │   ├── main.py
+├── ai-service/                     # Node.js AI service
+│   ├── src/
+│   │   ├── index.ts
 │   │   ├── routes/
 │   │   ├── controllers/
 │   │   ├── services/
-│   │   │   ├── ocr.py
-│   │   │   ├── document_classifier.py
-│   │   │   ├── field_extractor.py
-│   │   │   ├── verifier.py
-│   │   │   └── ai_analyzer.py
+│   │   │   ├── ocr.ts
+│   │   │   ├── documentClassifier.ts
+│   │   │   ├── fieldExtractor.ts
+│   │   │   ├── verifier.ts
+│   │   │   └── aiAnalyzer.ts
 │   │   ├── models/
 │   │   └── utils/
-│   ├── requirements.txt
+│   ├── package.json
 │   └── .env
 │
 ├── docs/
@@ -142,14 +145,14 @@ Upload Document
 React Frontend
   │
   ▼
-Node.js API
+Node.js API (Main Backend)
   │
   ├── Validate file
   ├── Authenticate user
   └── Forward document
           │
           ▼
-    Python AI Service
+    Node.js AI Service
           │
           ├── OCR
           ├── Text Extraction
@@ -164,7 +167,7 @@ Node.js API
     Verification Result
           │
           ▼
-      Node.js API
+      Node.js API (Main Backend)
           │
           ├── Save result → MongoDB
           └── Return response
@@ -254,7 +257,7 @@ Example:
 
 ## 7. API Design
 
-### Node.js APIs
+### Node.js Main Backend APIs
 
 #### Authentication (API Endpoints)
 
@@ -281,7 +284,7 @@ GET  /api/verifications/:id
 GET  /api/verifications
 ```
 
-### Python AI APIs
+### Node.js AI Service APIs
 
 ```text
 GET  /health
@@ -290,39 +293,41 @@ POST /ocr
 POST /classify
 ```
 
-## 8. Python AI Service
+## 8. Node.js AI Service
 
-Use **FastAPI** for the AI service.
+Use **Express** (or Fastify) with TypeScript for the AI service.
 
 Example:
 
-```python
-from fastapi import FastAPI, UploadFile, File
+```typescript
+import express, { Request, Response } from "express";
+import multer from "multer";
 
-app = FastAPI()
+const app = express();
+const upload = multer();
 
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({ status: "AI service running" });
+});
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "AI service running"
-    }
+app.post("/verify", upload.single("file"), async (req: Request, res: Response) => {
+  // Validate file
+  // Extract text (OCR)
+  // Classify document
+  // Extract fields
+  // Run AI analysis
+  // Generate verification result
 
+  res.json({
+    status: "verified",
+    confidence: 95,
+    issues: [],
+  });
+});
 
-@app.post("/verify")
-async def verify_document(file: UploadFile = File(...)):
-    # Validate file
-    # Extract text
-    # Classify document
-    # Extract fields
-    # Run AI analysis
-    # Generate verification result
-
-    return {
-        "status": "verified",
-        "confidence": 95,
-        "issues": []
-    }
+app.listen(process.env.PORT || 8000, () => {
+  console.log("AI service running");
+});
 ```
 
 ## 9. Example Verification Response
@@ -349,7 +354,7 @@ async def verify_document(file: UploadFile = File(...)):
 
 ## 10. Environment Variables
 
-### Node.js Server
+### Node.js Main Backend
 
 ```env
 PORT=5000
@@ -358,7 +363,7 @@ JWT_SECRET=your_jwt_secret
 AI_SERVICE_URL=http://localhost:8000
 ```
 
-### Python AI Service
+### Node.js AI Service
 
 ```env
 PORT=8000
@@ -389,7 +394,7 @@ npm install axios react-router-dom
 cd ..
 ```
 
-### Backend
+### Main Backend (Setup)
 
 ```bash
 cd server
@@ -405,30 +410,28 @@ npm install -D typescript ts-node-dev @types/node @types/express @types/cors @ty
 cd ..
 ```
 
-### Python AI Service (Setup)
+### AI Service (Setup)
 
 ```bash
 cd ai-service
 
-python -m venv venv
+npm init -y
+
+npm install express multer dotenv
+npm install tesseract.js pdf-parse
+npm install langchain openai
+npm install onnxruntime-node
+
+npm install -D typescript tsx @types/node @types/express @types/multer
+
+cd ..
 ```
 
-Windows:
+Run in development:
 
 ```bash
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
-pip install fastapi uvicorn python-multipart
-```
-
-Run:
-
-```bash
-uvicorn app.main:app --reload --port 8000
+cd ai-service
+npx tsx watch src/index.ts
 ```
 
 ## 12. Git Workflow
@@ -488,8 +491,8 @@ fix/verification-result
 
 * [ ] Create Git repository
 * [ ] Create React application
-* [ ] Create Express application
-* [ ] Create Python FastAPI service
+* [ ] Create Express main backend
+* [ ] Create Node.js AI service
 * [ ] Configure MongoDB
 * [ ] Configure environment variables
 * [ ] Connect frontend → backend
@@ -516,19 +519,19 @@ fix/verification-result
 
 ### Phase 4 — OCR
 
-* [ ] Python OCR service
+* [ ] Node.js OCR service (Tesseract.js)
 * [ ] PDF text extraction
 * [ ] Image OCR
 * [ ] Text preprocessing
 * [ ] OCR API
-* [ ] Connect Node.js → Python
+* [ ] Connect main backend → AI service
 
 ### Phase 5 — AI Analysis
 
 * [ ] Document classification
 * [ ] Field extraction
 * [ ] Data validation
-* [ ] AI-powered analysis
+* [ ] AI-powered analysis (LangChain.js / LLM SDK)
 * [ ] Confidence score
 * [ ] Anomaly detection
 
@@ -555,7 +558,7 @@ fix/verification-result
 
 * [ ] Backend unit tests
 * [ ] Frontend unit tests
-* [ ] Python tests
+* [ ] AI service unit tests
 * [ ] API integration tests
 * [ ] Docker configuration
 * [ ] Production environment
@@ -619,15 +622,15 @@ After the MVP works, add:
 * File handling
 * Service-to-service communication
 
-### Python / AI
+### AI Service (Learning Objectives)
 
-* Python
-* FastAPI
-* OCR
-* NLP
+* Node.js + TypeScript for AI workloads
+* Tesseract.js OCR
+* PDF text extraction
+* NLP concepts
 * Document processing
-* Machine learning
-* LLM integration
+* Running ML models via ONNX in Node.js
+* LLM integration (LangChain.js)
 * Prompt engineering
 * AI classification
 * Confidence scoring
@@ -674,17 +677,17 @@ AI-generated results should be treated as **decision support**, not unquestionab
 │  React + TypeScript                                    │
 │          │                                              │
 │          ▼                                              │
-│  Node.js + Express                                      │
+│  Node.js + Express (Main Backend)                       │
 │       │          │                                      │
 │       │          └──────────────► MongoDB               │
 │       │                                                 │
 │       ▼                                                 │
-│  Python + FastAPI                                       │
+│  Node.js + Express (AI Service)                          │
 │       │                                                 │
-│       ├── OCR                                            │
+│       ├── OCR (Tesseract.js)                              │
 │       ├── Document Classification                        │
 │       ├── Field Extraction                               │
-│       ├── AI Analysis                                    │
+│       ├── AI Analysis (LangChain.js)                      │
 │       ├── Anomaly Detection                               │
 │       └── Verification Engine                            │
 │                                                         │
@@ -697,6 +700,6 @@ Build a production-style AI-enabled document verification platform that demonstr
 
 ### Tech Stack Demonstrated
 
-React + TypeScript + Node.js + Express + MongoDB + Python + FastAPI + OCR + AI
+React + TypeScript + Node.js + Express + MongoDB + Tesseract.js + LangChain.js + AI
 
 The project should be developed incrementally, with each feature implemented, tested, and committed independently.

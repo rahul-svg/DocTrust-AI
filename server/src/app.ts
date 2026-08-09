@@ -4,6 +4,7 @@ import cors from 'cors';
 import { connectDB } from './config/db';
 import authRoutes from './routes/auth';
 import documentRoutes from './routes/documents';
+import verificationRoutes from './routes/verifications';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/verifications', verificationRoutes);
 
 app.use(errorHandler);
 
