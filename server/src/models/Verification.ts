@@ -14,6 +14,22 @@ export interface IAiAnalysis {
   anomalies: IAnomaly[];
 }
 
+export interface IRuleFinding {
+  code: string;
+  category: 'required_field' | 'field_format' | 'consistency' | 'duplicate';
+  severity: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export interface IVerificationReport {
+  findings: IRuleFinding[];
+  issues: string[];
+  dataConsistency: boolean;
+  passedChecks: number;
+  totalChecks: number;
+  verificationStatus: 'passed' | 'flagged' | 'failed';
+}
+
 export interface IVerification extends Document {
   documentId: Types.ObjectId;
   userId: Types.ObjectId;
@@ -23,6 +39,7 @@ export interface IVerification extends Document {
   confidence: number;
   extractedData: Record<string, string>;
   aiAnalysis: IAiAnalysis;
+  verificationReport: IVerificationReport;
   issues: string[];
   status: 'verified' | 'uncertain' | 'failed';
   createdAt: Date;
@@ -63,6 +80,33 @@ const verificationSchema = new Schema<IVerification>(
           },
         ],
         default: [],
+      },
+    },
+    verificationReport: {
+      findings: {
+        type: [
+          {
+            _id: false,
+            code: { type: String, required: true },
+            category: {
+              type: String,
+              enum: ['required_field', 'field_format', 'consistency', 'duplicate'],
+              required: true,
+            },
+            severity: { type: String, enum: ['high', 'medium', 'low'], required: true },
+            message: { type: String, required: true },
+          },
+        ],
+        default: [],
+      },
+      issues: { type: [String], default: [] },
+      dataConsistency: { type: Boolean, default: false },
+      passedChecks: { type: Number, default: 0 },
+      totalChecks: { type: Number, default: 0 },
+      verificationStatus: {
+        type: String,
+        enum: ['passed', 'flagged', 'failed'],
+        default: 'failed',
       },
     },
     issues: [{ type: String }],

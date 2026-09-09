@@ -43,6 +43,25 @@ function severityBadge(severity: number): string {
   return 'bg-yellow-100 text-yellow-700';
 }
 
+const RULE_SEVERITY_BADGE: Record<string, string> = {
+  high: 'bg-red-100 text-red-700',
+  medium: 'bg-orange-100 text-orange-700',
+  low: 'bg-yellow-100 text-yellow-700',
+};
+
+const VERIFICATION_STATUS_COLORS: Record<string, string> = {
+  passed: 'bg-green-100 text-green-700',
+  flagged: 'bg-yellow-100 text-yellow-700',
+  failed: 'bg-red-100 text-red-700',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  required_field: 'Required field',
+  field_format: 'Format',
+  consistency: 'Consistency',
+  duplicate: 'Duplicate',
+};
+
 function AnalysisModal({
   verification,
   onClose,
@@ -203,20 +222,51 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Issues */}
-          {verification.issues && verification.issues.length > 0 && (
+          {/* Verification Report */}
+          {verification.verificationReport && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                Issues
-              </p>
-              <ul className="space-y-1">
-                {verification.issues.map((issue, i) => (
-                  <li key={i} className="text-sm text-red-600 flex items-start gap-2">
-                    <span className="shrink-0">⚠</span>
-                    {issue}
-                  </li>
-                ))}
-              </ul>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Verification Report
+                </p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                      VERIFICATION_STATUS_COLORS[verification.verificationReport.verificationStatus] ??
+                      'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {verification.verificationReport.verificationStatus}
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    {verification.verificationReport.passedChecks}/
+                    {verification.verificationReport.totalChecks} checks passed
+                  </span>
+                </div>
+              </div>
+              {verification.verificationReport.findings.length === 0 ? (
+                <p className="text-sm text-green-600">All verification rules passed.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {verification.verificationReport.findings.map((finding, i) => (
+                    <li key={finding.code + i} className="flex items-start gap-2 text-sm">
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
+                          RULE_SEVERITY_BADGE[finding.severity] ?? 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {finding.severity.toUpperCase()}
+                      </span>
+                      <span className="text-gray-700">
+                        <span className="text-gray-400">
+                          [{CATEGORY_LABELS[finding.category] ?? finding.category}]{' '}
+                        </span>
+                        {finding.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
