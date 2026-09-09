@@ -27,6 +27,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Tesseract language data downloaded at runtime by the AI service
+*.traineddata
+
 # Uploads (do not commit uploaded documents)
 server/uploads/*
 !server/uploads/.gitkeep
