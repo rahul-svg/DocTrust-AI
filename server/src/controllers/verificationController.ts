@@ -34,6 +34,7 @@ export const verifyDocument = async (req: Request, res: Response): Promise<void>
       confidence: result.confidence,
       extractedData: result.extractedData,
       aiAnalysis: result.aiAnalysis,
+      verificationReport: result.verificationReport,
       issues: result.issues,
       status: result.status,
     });
@@ -51,7 +52,21 @@ export const verifyDocument = async (req: Request, res: Response): Promise<void>
       documentType: 'unknown',
       confidence: 0,
       extractedData: {},
-      aiAnalysis: { documentQuality: 'Poor', tamperingDetected: false, dataConsistency: false },
+      aiAnalysis: {
+        documentQuality: 'Poor',
+        tamperingDetected: false,
+        dataConsistency: false,
+        riskScore: 0,
+        anomalies: [],
+      },
+      verificationReport: {
+        findings: [],
+        issues: [],
+        dataConsistency: false,
+        passedChecks: 0,
+        totalChecks: 0,
+        verificationStatus: 'failed',
+      },
       issues: ['AI service unavailable or processing failed'],
       status: 'failed',
     });

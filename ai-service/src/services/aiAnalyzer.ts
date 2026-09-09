@@ -1,7 +1,9 @@
 import { extractText } from './ocr';
 import { classifyDocument } from './documentClassifier';
-import { extractFields } from './fieldExtractor';
-import { verifyFields } from './verifier';
+import { extractFields, getExpectedFields } from './fieldExtractor';
+import { verifyFields, type VerificationReport } from './verifier';
+import { detectAnomalies, type Anomaly } from './anomalyDetector';
+import { scoreConfidence } from './confidenceScorer';
 
 export interface FullAnalysisResult {
   ocrText: string;
@@ -12,7 +14,10 @@ export interface FullAnalysisResult {
     documentQuality: 'Good' | 'Fair' | 'Poor';
     tamperingDetected: boolean;
     dataConsistency: boolean;
+    riskScore: number;
+    anomalies: Anomaly[];
   };
+  verificationReport: VerificationReport;
   issues: string[];
   status: 'verified' | 'uncertain' | 'failed';
 }
@@ -22,6 +27,17 @@ function getDocumentQuality(text: string): 'Good' | 'Fair' | 'Poor' {
   if (len > 500) return 'Good';
   if (len > 100) return 'Fair';
   return 'Poor';
+}
+
+function emptyVerificationReport(): VerificationReport {
+  return {
+    findings: [],
+    issues: [],
+    dataConsistency: false,
+    passedChecks: 0,
+    totalChecks: 0,
+    verificationStatus: 'failed',
+  };
 }
 
 export async function analyzeDocument(
@@ -36,32 +52,62 @@ export async function analyzeDocument(
       documentType: 'unknown',
       confidence: 0,
       extractedData: {},
-      aiAnalysis: { documentQuality: 'Poor', tamperingDetected: false, dataConsistency: false },
+      aiAnalysis: {
+        documentQuality: 'Poor',
+        tamperingDetected: false,
+        dataConsistency: false,
+        riskScore: 0,
+        anomalies: [],
+      },
+      verificationReport: emptyVerificationReport(),
       issues: ['Could not extract readable text from document'],
       status: 'failed',
     };
   }
 
-  const { documentType, confidence } = await classifyDocument(ocrText);
+  const { documentType, confidence: classificationConfidence } = await classifyDocument(ocrText);
   const extractedData = await extractFields(ocrText, documentType);
-  const { issues, tamperingDetected, dataConsistency } = verifyFields(extractedData, documentType);
+
+  // Deterministic rule engine: required fields, formats, date consistency, duplicates.
+  const verificationReport = verifyFields(extractedData, documentType);
+
+  // Heuristic tampering signals: OCR quality, placeholder text, fabricated identifiers.
+  const { anomalies, tamperingDetected, riskScore } = detectAnomalies(ocrText, extractedData);
 
   const documentQuality = getDocumentQuality(ocrText);
 
+  const confidence = scoreConfidence({
+    classificationConfidence,
+    expectedFieldCount: getExpectedFields(documentType).length,
+    extractedFieldCount: Object.keys(extractedData).length,
+    issueCount: verificationReport.issues.length,
+    riskScore,
+    documentQuality,
+  });
+
   const status: FullAnalysisResult['status'] =
-    issues.length === 0 && confidence >= 0.7
+    tamperingDetected || verificationReport.verificationStatus === 'failed'
+      ? 'failed'
+      : verificationReport.verificationStatus === 'passed' && anomalies.length === 0 && confidence >= 70
       ? 'verified'
-      : documentQuality === 'Poor' || confidence < 0.4
+      : documentQuality === 'Poor' || confidence < 40
       ? 'failed'
       : 'uncertain';
 
   return {
     ocrText,
     documentType,
-    confidence: Math.round(confidence * 100),
+    confidence,
     extractedData,
-    aiAnalysis: { documentQuality, tamperingDetected, dataConsistency },
-    issues,
+    aiAnalysis: {
+      documentQuality,
+      tamperingDetected,
+      dataConsistency: verificationReport.dataConsistency,
+      riskScore,
+      anomalies,
+    },
+    verificationReport,
+    issues: verificationReport.issues,
     status,
   };
 }
