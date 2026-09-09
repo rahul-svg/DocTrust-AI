@@ -1,6 +1,5 @@
 export interface VerificationResult {
   issues: string[];
-  tamperingDetected: boolean;
   dataConsistency: boolean;
 }
 
@@ -33,7 +32,6 @@ export function verifyFields(
 
   return {
     issues,
-    tamperingDetected: false, // anomaly detection added in Phase 6
     dataConsistency: issues.length === 0,
   };
 }

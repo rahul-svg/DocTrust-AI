@@ -1,7 +1,15 @@
+export interface Anomaly {
+  code: string;
+  message: string;
+  severity: number;
+}
+
 export interface AiAnalysis {
   documentQuality: 'Good' | 'Fair' | 'Poor';
   tamperingDetected: boolean;
   dataConsistency: boolean;
+  riskScore: number;
+  anomalies: Anomaly[];
 }
 
 export interface Verification {

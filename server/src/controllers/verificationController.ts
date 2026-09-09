@@ -51,7 +51,13 @@ export const verifyDocument = async (req: Request, res: Response): Promise<void>
       documentType: 'unknown',
       confidence: 0,
       extractedData: {},
-      aiAnalysis: { documentQuality: 'Poor', tamperingDetected: false, dataConsistency: false },
+      aiAnalysis: {
+        documentQuality: 'Poor',
+        tamperingDetected: false,
+        dataConsistency: false,
+        riskScore: 0,
+        anomalies: [],
+      },
       issues: ['AI service unavailable or processing failed'],
       status: 'failed',
     });

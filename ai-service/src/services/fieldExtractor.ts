@@ -15,6 +15,13 @@ const FIELD_SCHEMAS: Partial<Record<DocumentType, string[]>> = {
   medical_record: ['patientName', 'dateOfBirth', 'recordDate', 'diagnosis', 'physician'],
 };
 
+const DEFAULT_FIELDS = ['name', 'date', 'referenceNumber'];
+
+/** The fields the schema expects for a document type — used for confidence scoring. */
+export function getExpectedFields(documentType: DocumentType | string): string[] {
+  return FIELD_SCHEMAS[documentType as DocumentType] ?? DEFAULT_FIELDS;
+}
+
 const extractionPrompt = PromptTemplate.fromTemplate(
   `You are a document data extraction specialist.
 
@@ -36,7 +43,7 @@ export async function extractFields(
     return {};
   }
 
-  const fields = FIELD_SCHEMAS[documentType] ?? ['name', 'date', 'referenceNumber'];
+  const fields = getExpectedFields(documentType);
 
   try {
     const model = new ChatOpenAI({

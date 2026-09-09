@@ -1,9 +1,17 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+export interface IAnomaly {
+  code: string;
+  message: string;
+  severity: number;
+}
+
 export interface IAiAnalysis {
   documentQuality: 'Good' | 'Fair' | 'Poor';
   tamperingDetected: boolean;
   dataConsistency: boolean;
+  riskScore: number;
+  anomalies: IAnomaly[];
 }
 
 export interface IVerification extends Document {
@@ -44,6 +52,18 @@ const verificationSchema = new Schema<IVerification>(
       documentQuality: { type: String, enum: ['Good', 'Fair', 'Poor'], default: 'Poor' },
       tamperingDetected: { type: Boolean, default: false },
       dataConsistency: { type: Boolean, default: false },
+      riskScore: { type: Number, default: 0 },
+      anomalies: {
+        type: [
+          {
+            _id: false,
+            code: { type: String, required: true },
+            message: { type: String, required: true },
+            severity: { type: Number, required: true },
+          },
+        ],
+        default: [],
+      },
     },
     issues: [{ type: String }],
     status: {

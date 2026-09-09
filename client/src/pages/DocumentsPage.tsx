@@ -25,6 +25,24 @@ const QUALITY_COLORS: Record<string, string> = {
   Poor: 'text-red-600',
 };
 
+function confidenceBarColor(confidence: number): string {
+  if (confidence >= 70) return 'bg-green-500';
+  if (confidence >= 40) return 'bg-yellow-500';
+  return 'bg-red-500';
+}
+
+function severityLabel(severity: number): string {
+  if (severity >= 0.7) return 'HIGH';
+  if (severity >= 0.4) return 'MED';
+  return 'LOW';
+}
+
+function severityBadge(severity: number): string {
+  if (severity >= 0.7) return 'bg-red-100 text-red-700';
+  if (severity >= 0.4) return 'bg-orange-100 text-orange-700';
+  return 'bg-yellow-100 text-yellow-700';
+}
+
 function AnalysisModal({
   verification,
   onClose,
@@ -56,17 +74,28 @@ function AnalysisModal({
 
         <div className="flex-1 overflow-auto px-6 py-5 space-y-5">
           {/* Status + confidence */}
-          <div className="flex items-center gap-3">
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full capitalize ${
-                VERIFY_COLORS[verification.status] ?? 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {verification.status}
-            </span>
-            <span className="text-sm text-gray-500">
-              Confidence: <span className="font-medium text-gray-700">{verification.confidence}%</span>
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-xs font-semibold px-3 py-1 rounded-full capitalize ${
+                  VERIFY_COLORS[verification.status] ?? 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {verification.status}
+              </span>
+              <span className="text-sm text-gray-500">
+                Confidence:{' '}
+                <span className="font-medium text-gray-700">{verification.confidence}%</span>
+              </span>
+            </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${confidenceBarColor(
+                  verification.confidence
+                )}`}
+                style={{ width: `${Math.min(100, Math.max(0, verification.confidence))}%` }}
+              />
+            </div>
           </div>
 
           {/* Document type */}
@@ -107,6 +136,9 @@ function AnalysisModal({
                   >
                     {verification.aiAnalysis.tamperingDetected ? 'Detected' : 'None'}
                   </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    risk {Math.round((verification.aiAnalysis.riskScore ?? 0) * 100)}%
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-400 mb-1">Consistency</p>
@@ -141,6 +173,35 @@ function AnalysisModal({
                 </div>
               </div>
             )}
+
+          {/* Anomalies */}
+          {verification.aiAnalysis?.anomalies?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                Anomalies Detected
+              </p>
+              <ul className="space-y-1.5">
+                {verification.aiAnalysis.anomalies.map((anomaly) => (
+                  <li
+                    key={anomaly.code + anomaly.message}
+                    className="flex items-start gap-2 text-sm"
+                  >
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${severityBadge(
+                        anomaly.severity
+                      )}`}
+                    >
+                      {severityLabel(anomaly.severity)}
+                    </span>
+                    <span className="text-gray-700">{anomaly.message}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-400 mt-2">
+                Anomalies are indicators for review, not proof of forgery.
+              </p>
+            </div>
+          )}
 
           {/* Issues */}
           {verification.issues && verification.issues.length > 0 && (

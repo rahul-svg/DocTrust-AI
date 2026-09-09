@@ -1,7 +1,9 @@
 import { extractText } from './ocr';
 import { classifyDocument } from './documentClassifier';
-import { extractFields } from './fieldExtractor';
+import { extractFields, getExpectedFields } from './fieldExtractor';
 import { verifyFields } from './verifier';
+import { detectAnomalies, type Anomaly } from './anomalyDetector';
+import { scoreConfidence } from './confidenceScorer';
 
 export interface FullAnalysisResult {
   ocrText: string;
@@ -12,6 +14,8 @@ export interface FullAnalysisResult {
     documentQuality: 'Good' | 'Fair' | 'Poor';
     tamperingDetected: boolean;
     dataConsistency: boolean;
+    riskScore: number;
+    anomalies: Anomaly[];
   };
   issues: string[];
   status: 'verified' | 'uncertain' | 'failed';
@@ -36,31 +40,61 @@ export async function analyzeDocument(
       documentType: 'unknown',
       confidence: 0,
       extractedData: {},
-      aiAnalysis: { documentQuality: 'Poor', tamperingDetected: false, dataConsistency: false },
+      aiAnalysis: {
+        documentQuality: 'Poor',
+        tamperingDetected: false,
+        dataConsistency: false,
+        riskScore: 0,
+        anomalies: [],
+      },
       issues: ['Could not extract readable text from document'],
       status: 'failed',
     };
   }
 
-  const { documentType, confidence } = await classifyDocument(ocrText);
+  const { documentType, confidence: classificationConfidence } = await classifyDocument(ocrText);
   const extractedData = await extractFields(ocrText, documentType);
-  const { issues, tamperingDetected, dataConsistency } = verifyFields(extractedData, documentType);
+  const { issues, dataConsistency } = verifyFields(extractedData, documentType);
+
+  const { anomalies, tamperingDetected, riskScore } = detectAnomalies(
+    ocrText,
+    extractedData,
+    documentType
+  );
 
   const documentQuality = getDocumentQuality(ocrText);
 
-  const status: FullAnalysisResult['status'] =
-    issues.length === 0 && confidence >= 0.7
-      ? 'verified'
-      : documentQuality === 'Poor' || confidence < 0.4
-      ? 'failed'
-      : 'uncertain';
+  const confidence = scoreConfidence({
+    classificationConfidence,
+    expectedFieldCount: getExpectedFields(documentType).length,
+    extractedFieldCount: Object.keys(extractedData).length,
+    issueCount: issues.length,
+    riskScore,
+    documentQuality,
+  });
+
+  // `issues` stays the validation-rule list; anomaly detail lives in
+  // aiAnalysis.anomalies so consumers can render severity alongside each one.
+  const status: FullAnalysisResult['status'] = tamperingDetected
+    ? 'failed'
+    : issues.length === 0 && anomalies.length === 0 && confidence >= 70
+    ? 'verified'
+    : documentQuality === 'Poor' || confidence < 40
+    ? 'failed'
+    : 'uncertain';
 
   return {
     ocrText,
     documentType,
-    confidence: Math.round(confidence * 100),
+    confidence,
     extractedData,
-    aiAnalysis: { documentQuality, tamperingDetected, dataConsistency },
+    aiAnalysis: {
+      documentQuality,
+      tamperingDetected,
+      dataConsistency,
+      riskScore,
+      anomalies,
+    },
     issues,
     status,
   };
