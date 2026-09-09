@@ -6,14 +6,13 @@ AI-powered document verification system built with MERN stack and Python FastAPI
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + TypeScript + MongoDB
-- **AI Service**: Python + FastAPI + OCR + ML
+- **AI Service**: Node.js + Express + OCR + ML
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Python 3.10+
 - MongoDB (local or Atlas)
 
 ### Frontend
@@ -54,5 +53,5 @@ See `.env.example` in each service directory. Never commit real secrets.
 doctrust-ai/
 ├── client/       # React frontend
 ├── server/       # Node.js + Express backend
-└── ai-service/   # Python FastAPI AI service
+└── ai-service/   # Node.js + Express AI service
 ```
