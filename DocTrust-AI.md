@@ -546,13 +546,13 @@ fix/verification-result
 
 ### Phase 7 — Dashboard
 
-* [ ] Dashboard
-* [ ] Upload screen
-* [ ] Verification result page
-* [ ] Verification history
-* [ ] Document details
-* [ ] Confidence visualization
-* [ ] Error/issue display
+* [x] Dashboard
+* [x] Upload screen
+* [x] Verification result page
+* [x] Verification history
+* [x] Document details
+* [x] Confidence visualization
+* [x] Error/issue display
 
 ### Phase 8 — Testing & Deployment
 

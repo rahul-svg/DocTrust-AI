@@ -5,7 +5,10 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import DocumentsPage from './pages/DocumentsPage';
+import DocumentDetailPage from './pages/DocumentDetailPage';
 import UploadPage from './pages/UploadPage';
+import VerificationHistoryPage from './pages/VerificationHistoryPage';
+import VerificationResultPage from './pages/VerificationResultPage';
 
 export default function App() {
   return (
@@ -31,6 +34,14 @@ export default function App() {
             }
           />
           <Route
+            path="/documents/:id"
+            element={
+              <ProtectedRoute>
+                <DocumentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/upload"
             element={
               <ProtectedRoute>
@@ -38,7 +49,23 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/documents" replace />} />
+          <Route
+            path="/verifications"
+            element={
+              <ProtectedRoute>
+                <VerificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/verifications/:id"
+            element={
+              <ProtectedRoute>
+                <VerificationResultPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
