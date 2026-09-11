@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { documentService } from '../services/documentService';
+import Navbar from '../components/Navbar';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
 const MAX_MB = 10;
@@ -49,8 +50,9 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-xl mx-auto p-8">
         <button
           onClick={() => navigate('/documents')}
           className="text-sm text-blue-600 hover:underline mb-6 inline-block"
